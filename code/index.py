@@ -27,6 +27,7 @@ from sklearn.linear_model    import LogisticRegression, SGDClassifier
 import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_option_menu import option_menu
+from streamlit_elements import elements, mui, html
 
 from PIL import Image
 
@@ -44,12 +45,16 @@ with st.sidebar:
     }
     )
 
+# Lendo os dados
 
-st.header('Analise de Emails Spam')
+file_path ='https://www.dropbox.com/scl/fi/f8g7lukjhymkntut52707/email_spam.csv?rlkey=7rcjwi68138vqh4l03m011aip&dl=1'
+df = pd.read_csv(file_path)
+
+
 
 # texto de introdução
 if (selected2 == "Home"):
-    
+    st.header('Analise de Emails Spam')
     col1, col2= st.columns([2,2])
     with col1:
         st.subheader('Introdução')
@@ -84,7 +89,80 @@ if (selected2 == "Home"):
             contribuindo substancialmente para o desenvolvimento de soluções eficazes no enfrentamento dos desafios crescentes no cenário da comunicação eletrônica.</div>', unsafe_allow_html=True)
             
 if (selected2 == "Gráficos"):
-    st.write('Pagina graficos')
+    st.subheader('Pagina graficos')
+    graf1, graf2 = st.columns([2,2])
+    gra3,graf4 = st.columns([2,2])
+    
+    with graf1:
+        st.subheader('Dataframe original')
+        st.write('Esse dataframe é o original, sem nenhuma alteração. \
+        \n Como podemos ver, nosso conjunto de dados possui 3 colunas, o Title que representa o titlo do email,\
+        o Text que representa o texto do email e a coluna Type que indica se\
+        o email é ou não um Spam.')
+        
+        edited_df = st.data_editor(df)
+    
+    with graf2:
+        st.subheader('Dataframe modificado')
+        st.write('Esse Dataframe é resultado de após realizar o processamento de texto e a limpeza dos dados \
+        retirando caracteres especiais e passando todas as letras minuscula e também aplicando o Stopwords para remover palavras Stopwords.')
+        
+        df.drop_duplicates()
+        df.isnull().sum().any()
+        df["spam"] = df["type"].apply(lambda x: 1 if x == "spam" else 0)
+        df['message'] = df['title'] + df['text']
+        df["message"] = df["message"].replace('\n','', regex=True)
+        
+        #aplicando a limpeza de dados
+        def clean_text(df, message):
+            df[f'{message}_cleaned'] = df[[f'{message}']]\
+            .replace(regex=r'[!/,.@_?-]',value='')\
+            .apply(lambda x: x.astype(str).str.lower())\
+            .apply(lambda x:x.astype(str).str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8'))
+
+        clean_text(df, 'message')
+        df02 = df.drop(columns=['title', 'text', 'message'])
+        
+        # aplicando o stopwords
+        
+        nltk.download('stopwords')
+        
+        def stop_words_01( df02 , message_cleaned, message ):
+            stop_words = stopwords.words('english')
+            df02[message] = df02[message_cleaned].apply( lambda  x : ' '.join([word for word in x.split() if word not in (stop_words)]))
+        
+        stop_words_01(df02,'message_cleaned', 'message')
+        df02 = df02.drop(columns=['message_cleaned'])
+        
+        df02
+        
+        
+        
+    with gra3:
+        st.subheader('Gráfico 3')
+        st.write('Gráfico da quantidade de emails por tipo')
+        
+        #Grafico da quantidade de emails por tipo
+        df['type'].value_counts().plot(kind ="barh")
+        
+   
+        
+    with graf4:
+        st.subheader('Gráfico 4')
+        st.write('Gráfico 4')
+        
+        # Grafico de distribuicao de classes
+        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+        f = sns.countplot(x = df02['spam'], palette="Blues_d")
+        plt.xlabel('Target Variable')
+        plt.ylabel('Counts of each class')
+        plt.title('Class distribution (%)')
+        for p in f.patches:
+            width = p.get_width()
+            height = p.get_height()
+            x, y = p.get_xy()
+            ax.annotate(f'{round(height/df02.shape[0], 2)*100} %', (x + width/2, y + height*1.01), ha='center')
+        st.pyplot(fig)         
 
 if (selected2 == "Sobre"):  
     st.write('Pagina sobre')  
