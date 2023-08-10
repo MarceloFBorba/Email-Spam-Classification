@@ -1,2 +1,2 @@
-# Email-Spam-Classification
+# Email Spam Classification
 Analise de Emails Spam
